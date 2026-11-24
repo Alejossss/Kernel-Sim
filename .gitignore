@@ -1,0 +1,6 @@
+/build/
+/out/
+/web/node_modules/
+/web/dist/
+/web/public/engine/
+/web/test-results/

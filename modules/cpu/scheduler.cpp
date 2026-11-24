@@ -1,4 +1,5 @@
 #include "scheduler.hpp"
+#include "fairness.hpp"
 #include <queue>
 #include <numeric>
 
@@ -72,18 +73,10 @@ namespace os
             stats.avg_wait = static_cast<float>(total_wait) / n;
             stats.avg_turnaround = static_cast<float>(total_turnaround) / n;
 
-            // === Fairness (Jain)  ===
-            double sumU = 0.0, sumU2 = 0.0;
-            for (int i = 0; i < n; ++i)
-            {
-                // turnaround siempre >= burst, pero protegemos por si acaso
-                const double ta = std::max(1, processes[i].turnaround);
-                const double b = std::max(1, processes[i].burst);
-                const double u = b / ta; // 1/slowdown en (0,1]
-                sumU += u;
-                sumU2 += u * u;
-            }
-            stats.jain_fairness = (sumU2 > 0.0) ? ((sumU * sumU) / (n * sumU2)) : 1.0;
+            InverseSlowdownFairness fairness;
+            for (const auto& process : processes)
+                fairness.add(process.burst, process.turnaround);
+            stats.jain_fairness = fairness.value();
 
             return stats;
         }
@@ -190,17 +183,10 @@ namespace os
             stats.avg_wait = (n ? (float)sum_wait / n : 0.0f);
             stats.avg_turnaround = (n ? (float)sum_turn / n : 0.0f);
 
-            // === Fairness (Jain) ===
-            double sumU = 0.0, sumU2 = 0.0;
-            for (int i = 0; i < n; ++i)
-            {
-                const double ta = std::max(1, processes[i].turnaround);
-                const double b = std::max(1, processes[i].burst);
-                const double u = b / ta; // utilidad 1/slowdown
-                sumU += u;
-                sumU2 += u * u;
-            }
-            stats.jain_fairness = (sumU2 > 0.0) ? ((sumU * sumU) / (n * sumU2)) : 1.0;
+            InverseSlowdownFairness fairness;
+            for (const auto& process : processes)
+                fairness.add(process.burst, process.turnaround);
+            stats.jain_fairness = fairness.value();
 
             return stats;
         }

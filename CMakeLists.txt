@@ -6,6 +6,28 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+add_library(kernel_cpu_trace STATIC core/cpu_trace.cpp)
+target_include_directories(kernel_cpu_trace PUBLIC core modules/cpu)
+
+if(EMSCRIPTEN)
+    add_executable(kernel_engine bindings/wasm/cpu.cpp)
+    target_link_libraries(kernel_engine PRIVATE kernel_cpu_trace)
+    target_link_options(kernel_engine PRIVATE --no-entry
+        "-sMODULARIZE=1" "-sEXPORT_ES6=1" "-sENVIRONMENT=web,worker,node"
+        "-sALLOW_MEMORY_GROWTH=1"
+        "-sEXPORTED_FUNCTIONS=_malloc,_free" "-sEXPORTED_RUNTIME_METHODS=UTF8ToString,HEAP32")
+    set_target_properties(kernel_engine PROPERTIES SUFFIX ".mjs"
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/web/public/engine")
+    return()
+endif()
+
+include(CTest)
+if(BUILD_TESTING)
+    add_executable(cpu_trace_test tests/cpu_trace.cpp modules/cpu/scheduler.cpp)
+    target_link_libraries(cpu_trace_test PRIVATE kernel_cpu_trace)
+    add_test(NAME cpu_trace COMMAND cpu_trace_test)
+endif()
+
 # ====== Archivos fuente ======
 set(SOURCES
     cli/main.cpp
