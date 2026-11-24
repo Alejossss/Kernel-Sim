@@ -1,0 +1,48 @@
+name: Verify Kernel-Sim
+on:
+  pull_request:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Native build and regression tests
+        run: |
+          cmake -S . -B out/native -DCMAKE_BUILD_TYPE=Release
+          cmake --build out/native --parallel
+          ctest --test-dir out/native --output-on-failure
+          printf 'help\nsched sjf 1,0,5 2,1,3 3,2,4 4,4,2\nexit\n' | build/kernel_cli > out/cli.txt
+          grep -F 'Promedio de espera: 3.75' out/cli.txt
+      - name: Build WebAssembly with Emscripten 4.0.15
+        run: |
+          git clone --depth 1 https://github.com/emscripten-core/emsdk.git out/emsdk
+          out/emsdk/emsdk install 4.0.15
+          out/emsdk/emsdk activate 4.0.15
+          source out/emsdk/emsdk_env.sh
+          emcmake cmake -S . -B out/wasm -DCMAKE_BUILD_TYPE=Release
+          cmake --build out/wasm --parallel
+      - name: Verify and build the web app
+        working-directory: web
+        env:
+          NATIVE_CPU_TRACE: ${{ github.workspace }}/out/native/cpu_trace_test
+        run: |
+          npm ci
+          npm test
+          npm run build
+          npx playwright install --with-deps chromium
+          npm run e2e
+      - name: Prepare GitHub Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: web/dist

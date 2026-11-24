@@ -1,5 +1,17 @@
 # Kernel-Sim 🧵🧠
 
+## Kernel-Sim 2.0 · Operating Systems Playground
+
+La primera entrega web incluye la pantalla de inicio y el simulador de CPU. El simulador ejecuta FCFS, SJF, SRTF, Round Robin y prioridad en C++20 compilado a WebAssembly. La interfaz ofrece una línea de tiempo interactiva, colas y estados por evento, métricas y escenarios de estudio.
+
+[Compilación, arquitectura, reglas y pruebas de la versión web](docs/web-cpu.md)
+
+![Pantalla de inicio de Kernel-Sim](docs/screenshots/overview.png)
+
+[Captura del simulador de CPU](docs/screenshots/cpu.png)
+
+
+
 **Kernel-Sim** es un mini simulador de sistema operativo pensado para practicar conceptos de un kernel real desde la consola:  
 procesos, planificación de CPU, memoria, disco, E/S y sincronización.
 
