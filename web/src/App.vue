@@ -1,14 +1,20 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { Box, BookOpen, Github, Globe, LayoutGrid, Menu, Moon, Sun, X } from 'lucide-vue-next'
+import { Box, BookOpen, Github, Globe, LayoutGrid, Menu, Moon, PanelLeft, PanelLeftClose, PanelLeftOpen, Sun, X } from 'lucide-vue-next'
 import { modules, tools } from './catalog'
 import { t, usePreferences } from './preferences'
 import { useSimulation } from './store'
+import { navigation, cycleNavigation } from './navigation'
 const { locale, theme } = usePreferences()
 const sim = useSimulation()
 const route = useRoute()
 const open = ref(false)
+const navigationLabel = computed(() => ({
+  expanded:t('Compact navigation','Compactar navegación'),
+  compact:t('Hide navigation','Ocultar navegación'),
+  hidden:t('Restore navigation','Restaurar navegación'),
+})[navigation.value])
 const docs = 'https://github.com/Alejossss/Kernel-Sim#readme'
 const title = computed(() => {
   if (route.path === '/cpu') return modules[0].title()
@@ -18,29 +24,30 @@ watch(() => route.path, () => { open.value = false })
 </script>
 <template>
   <a class="skip" href="#content" @click.prevent="($refs.content as HTMLElement).focus()">{{ t('Skip to content','Ir al contenido') }}</a>
-  <div class="shell" @keydown.esc="open = false">
+  <div class="shell" :data-nav="navigation" @keydown.esc="open = false">
     <button v-if="open" class="overlay" type="button" :aria-label="t('Close navigation','Cerrar navegación')" @click="open = false" />
     <aside id="navigation" :class="['sidebar',{ open }]">
-      <RouterLink to="/" class="brand"><span class="brand-icon"><Box :size="19" /></span><span>kernel<span class="brand-dot">.</span>sim<small>OS PLAYGROUND</small></span></RouterLink>
+      <RouterLink to="/" class="brand" :title="t('Overview','Inicio')" :aria-label="t('Overview','Inicio')"><span class="brand-icon"><Box :size="19" /></span><span>kernel<span class="brand-dot">.</span>sim<small>OS PLAYGROUND</small></span></RouterLink>
       <nav :aria-label="t('Workspace navigation','Navegación del espacio de trabajo')">
         <p class="nav-label">{{ t('Workspace','Espacio de trabajo') }}</p>
-        <RouterLink to="/" class="nav-link"><LayoutGrid :size="16" />{{ t('Overview','Inicio') }}</RouterLink>
+        <RouterLink to="/" class="nav-link" :title="t('Overview','Inicio')" :aria-label="t('Overview','Inicio')"><LayoutGrid :size="16" /><span>{{ t('Overview','Inicio') }}</span></RouterLink>
         <p class="nav-label">{{ t('Simulators','Simuladores') }}</p>
-        <RouterLink v-for="module in modules" :key="module.id" :to="module.path ?? '/module/' + module.id" class="nav-link" :data-color="module.color">
+        <RouterLink v-for="module in modules" :key="module.id" :to="module.path ?? '/module/' + module.id" class="nav-link" :data-color="module.color" :exact-active-class="module.id === 'cpu' && route.query.compare === '1' ? 'query-inactive' : undefined" :aria-current-value="module.id === 'cpu' && route.query.compare === '1' ? 'false' : 'page'" :title="module.title()" :aria-label="module.title()">
           <component :is="module.icon" :size="16" /><span>{{ module.title() }}</span>
         </RouterLink>
         <p class="nav-label">{{ t('Tools','Herramientas') }}</p>
-        <RouterLink v-for="tool in tools" :key="tool.id" :to="'/module/' + tool.id" class="nav-link"><component :is="tool.icon" :size="16" /><span>{{ tool.title() }}</span></RouterLink>
+        <RouterLink v-for="tool in tools" :key="tool.id" :to="tool.id === 'compare' ? { path:'/cpu', query:{ view:'results', compare:'1' } } : '/module/' + tool.id" class="nav-link" :exact-active-class="tool.id === 'compare' && route.query.compare !== '1' ? 'query-inactive' : undefined" :aria-current-value="tool.id === 'compare' && route.query.compare !== '1' ? 'false' : 'page'" :title="tool.title()" :aria-label="tool.title()"><component :is="tool.icon" :size="16" /><span>{{ tool.title() }}</span></RouterLink>
       </nav>
       <div class="sidebar-footer">
-        <a :href="docs" target="_blank" rel="noopener" class="nav-link"><BookOpen :size="16" />{{ t('Documentation','Documentación') }}</a>
-        <a href="https://github.com/Alejossss/Kernel-Sim" target="_blank" rel="noopener" class="nav-link"><Github :size="16" />@Alejossss</a>
+        <a :href="docs" target="_blank" rel="noopener" class="nav-link" :title="t('Documentation','Documentación')" :aria-label="t('Documentation','Documentación')"><BookOpen :size="16" /><span>{{ t('Documentation','Documentación') }}</span></a>
+        <a href="https://github.com/Alejossss/Kernel-Sim" target="_blank" rel="noopener" class="nav-link" title="@Alejossss" aria-label="@Alejossss"><Github :size="16" /><span>@Alejossss</span></a>
         <span class="version">KERNEL-SIM <strong>v2.0</strong></span>
       </div>
     </aside>
     <div class="workspace">
       <header class="topbar">
         <button class="icon-button menu" type="button" :aria-label="t('Toggle navigation','Alternar navegación')" aria-controls="navigation" :aria-expanded="open" @click="open = !open"><X v-if="open" :size="19" /><Menu v-else :size="19" /></button>
+        <button class="icon-button desktop-nav" type="button" :aria-label="navigationLabel" :title="navigationLabel" aria-controls="navigation" @click="cycleNavigation"><PanelLeftOpen v-if="navigation === 'hidden'" :size="17" /><PanelLeftClose v-else-if="navigation === 'compact'" :size="17" /><PanelLeft v-else :size="17" /></button>
         <div class="breadcrumb"><span>{{ t('Workspace','Espacio de trabajo') }}</span><span>/</span><strong>{{ title }}</strong></div>
         <div class="header-actions">
           <span :class="['engine-status',sim.engine]" role="status"><i />{{ sim.engine === 'ready' ? t('Engine online','Motor activo') : sim.engine === 'loading' ? t('Loading engine','Cargando motor') : t('Engine unavailable','Motor no disponible') }}</span>

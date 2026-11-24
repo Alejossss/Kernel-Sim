@@ -57,9 +57,20 @@ La primera compilación local falló al invocar GNU C++ con un `PATH` incompleto
 
 ## Flujo de ejecución
 
-Vue edita la carga en Pinia. Al ejecutar, el estado envía una copia de la configuración a un Web Worker. El Worker carga Emscripten, pasa los enteros a C++ y devuelve la traza con segmentos, snapshots y métricas. Los nombres de proceso se conservan como etiquetas de presentación. Cada edición invalida las trazas y respuestas anteriores. El controlador de reproducción mueve un cursor sobre snapshots, por lo que la velocidad y el retroceso no afectan los resultados.
+Vue edita la carga en Pinia. Al ejecutar, el estado envía una copia de la configuración a un Web Worker. El Worker carga Emscripten, pasa los enteros a C++ y devuelve la traza con segmentos, snapshots y métricas. Los nombres de proceso se conservan como etiquetas de presentación. La configuración se edita como borrador. Una ejecución válida sustituye la configuración aplicada y su traza. El controlador de reproducción mueve un cursor sobre snapshots, por lo que la velocidad y el retroceso no afectan los resultados.
 
-Cada evento tiene ID ascendente, módulo, instante lógico, código de explicación, PID asociado, proceso activo, cola y estado por proceso. El Gantt representa segmentos de ejecución o inactividad. Al seleccionar uno, se recupera el snapshot del comienzo del segmento. La interfaz muestra los ocho eventos más recientes hasta el cursor.
+Cada evento tiene ID ascendente, módulo, instante lógico, código de explicación, PID asociado, proceso activo, cola y estado por proceso. El Gantt representa segmentos de ejecución o inactividad. Al seleccionar uno, se recupera el snapshot del comienzo del segmento. El registro cronológico muestra eventos hasta el cursor y permite filtrar por proceso y tipo. El seguimiento automático se suspende cuando se consulta una posición anterior.
+
+## Uso de CPU Scheduling
+
+- La barra lateral ofrece los modos expandido, compacto y oculto. El selector permanece en la barra superior y guarda la elección. En móvil, la navegación se abre como un panel lateral.
+- Simulación muestra el Gantt, el reloj lógico, la cola, la CPU, los procesos terminados y la tabla de estados. Los controles de reproducción permanecen visibles al desplazarse.
+- Configuración despliega el editor inferior. Aplicar y ejecutar genera una traza nueva. Los errores mantienen el editor abierto y conservan la última traza válida.
+- Resultados y análisis muestra los promedios de procesos terminados durante la reproducción y las métricas completas al llegar al último evento. El comparador ejecuta las cinco políticas en el motor sobre la carga aplicada.
+- El tutorial de CPU se inicia en la primera visita. El botón de ayuda permite reiniciarlo. El componente de recorrido admite pasos anclados a elementos de cualquier módulo.
+- El tiempo visual interpola la posición del indicador del Gantt entre eventos. Las colas, los estados y el registro se actualizan desde snapshots discretos. Pausar vuelve al instante lógico comprometido y el ajuste de movimiento reducido desactiva las transiciones.
+
+[Captura del simulador](screenshots/cpu.png) · [Captura de resultados](screenshots/cpu-results.png)
 
 ## Reglas y métricas
 
