@@ -16,14 +16,14 @@
   .shell[data-nav=compact] .nav-label { font-size:0; height:13px; padding:0; border-top:1px solid var(--line); margin-top:10px }
   .shell[data-nav=hidden] .sidebar { visibility:hidden; opacity:0; padding-inline:0; border:0 }
 }
-.refined-cpu { --sticky-height:99px; padding-top:24px }
+.refined-cpu { --sticky-height:53px; padding-top:24px }
+.refined-cpu.showing-results { --sticky-height:99px }
 .cpu-titlebar { display:flex; align-items:center; gap:13px; margin-bottom:15px }
 .cpu-titlebar .module-icon { width:43px; height:43px }
 .cpu-title { display:flex; flex-wrap:wrap; align-items:center; gap:9px 13px }
 .cpu-title h1 { font-size:clamp(1.35rem,3.5vw,2rem); letter-spacing:-.052em; line-height:1.15 }
 .policy-chip { font-size:.73rem; border:1px solid var(--line); border-radius:5px; padding:4px 7px; color:var(--accent); background:var(--input); white-space:nowrap }
 .cpu-title-actions { display:flex; gap:7px; align-items:center; margin-left:auto }
-.draft-dot { width:6px; height:6px; background:#d97706; border-radius:50% }
 .cpu-sticky { position:sticky; top:0; z-index:4; background:var(--bg); padding:0 0 9px }
 .view-tabs { display:flex; gap:22px; border-bottom:1px solid var(--line); padding:0 2px; margin-bottom:8px }
 .view-tabs button { background:none; border:0; border-bottom:2px solid transparent; color:var(--muted); padding:8px 1px 9px; font-weight:600; font-size:.85rem }
@@ -34,6 +34,7 @@
 .simulation-layout { display:grid; grid-template-columns:minmax(0,1fr) clamp(250px,24vw,315px); gap:13px; padding-top:3px; align-items:start; transition:grid-template-columns 250ms ease }
 .simulation-layout.log-compact { grid-template-columns:minmax(0,1fr) 46px }
 .simulation-main,.results-content { display:grid; grid-template-columns:minmax(0,1fr); min-width:0; gap:11px }
+.timeline-heading-controls { display:flex; align-items:center; justify-content:flex-end; gap:12px; flex-wrap:wrap }
 .timeline-key { display:flex; align-items:center; gap:6px; color:var(--muted); font:.69rem var(--mono) }
 .timeline-key i { width:8px; height:8px; background:var(--accent); border-radius:2px }
 .timeline-key i:nth-of-type(2) { background:var(--input); border:1px solid var(--muted); margin-left:4px }
@@ -53,7 +54,15 @@
 .flow-arrow { position:absolute; top:50%; right:-8px; z-index:1; background:var(--panel); color:var(--muted); border:1px solid var(--line); border-radius:50% }
 .refined-cpu .state { transition:color 200ms ease }
 .finish-banner,.analysis-status { display:flex; align-items:center; gap:12px; min-width:0; background:color-mix(in srgb,var(--accent) 8%,var(--panel)); border:1px solid color-mix(in srgb,var(--accent) 32%,var(--line)); border-radius:7px; padding:9px 12px; font-size:.85rem }
-.finish-banner { justify-content:space-between }
+.finish-banner {
+  position:fixed; z-index:5; right:14px; bottom:max(14px,env(safe-area-inset-bottom));
+  width:max-content; max-width:calc(100% - 24px);
+  background:var(--surface); box-shadow:0 8px 24px #0004;
+}
+.finish-banner .button { flex:none }
+.trace-toast-enter-active,.trace-toast-leave-active { transition:opacity 200ms ease,transform 200ms ease }
+.trace-toast-enter-from,.trace-toast-leave-to { opacity:0; transform:translateY(10px) }
+.trace-toast-leave-active { pointer-events:none }
 .finish-banner strong,.analysis-status.complete strong { color:var(--green) }
 .analysis-status > span { margin-left:auto; white-space:nowrap; color:var(--muted) }
 .analysis-status p,.analysis-note { color:var(--muted); margin-top:3px; line-height:1.55; font-size:.84rem }
@@ -67,11 +76,13 @@
 .comparison-track { height:15px; border-radius:4px; background:var(--input); border:1px solid var(--line); overflow:hidden }
 .comparison-track i { height:100%; display:block; background:color-mix(in srgb,var(--accent) 50%,var(--surface)); transition:width 200ms ease }
 .comparison-track i.selected { background:var(--accent) }
-.configuration-drawer { border:1px solid var(--line); border-radius:8px; background:var(--panel) }
+.configuration-drawer { margin-bottom:10px; border:1px solid var(--line); border-radius:8px; background:var(--panel) }
 .configuration-summary { width:100%; min-height:45px; display:flex; align-items:center; flex-wrap:wrap; gap:7px 10px; text-align:left; background:none; color:var(--text); border:0; border-radius:8px; padding:8px 12px; font-size:.84rem }
 .configuration-summary:hover { color:var(--accent) }
 .configuration-summary .mono { color:var(--muted); font-size:.72rem }
-.draft-label { margin-left:auto; color:var(--accent); font-size:.72rem }
+.draft-label { color:var(--accent); font-size:.72rem }
+.configuration-chevron { margin-left:auto; color:var(--muted); transition:transform 250ms ease }
+.configuration-open .configuration-chevron { transform:rotate(180deg) }
 .configuration-grid { display:grid; grid-template-rows:0fr; opacity:0; transition:grid-template-rows 250ms ease,opacity 200ms ease }
 .configuration-open .configuration-grid { grid-template-rows:1fr; opacity:1 }
 .configuration-inner { min-height:0; overflow:hidden }
@@ -133,6 +144,7 @@
   .event-heading { scroll-margin-top:calc(var(--sticky-height) + 10px) }
   .event-timeline.compact .event-heading { justify-content:flex-end }
   .event-scroll { height:310px }
+  .finish-banner { inset-inline:0; margin-inline:auto }
 }
 @media (max-width:460px) {
   .refined-cpu { padding-top:14px }
@@ -141,13 +153,13 @@
   .cpu-titlebar .module-icon { display:none }
   .cpu-title { column-gap:8px }
   .cpu-title-actions { gap:4px }
-  .cpu-title-actions .button { gap:5px; padding-inline:6px; font-size:.73rem }
   .cpu-title-actions .icon-button { width:31px; min-width:31px }
   .cpu-transport { gap:3px; padding-right:5px }
   .cpu-transport .clock { gap:3px; padding-left:4px; font-size:.66rem }
   .cpu-transport .clock svg { display:none }
   .cpu-transport .playback .icon-button { min-width:27px; width:27px }
   .cpu-transport .playback { gap:4px }
+  .timeline-heading-controls { gap:4px; flex-direction:column-reverse; align-items:flex-end }
   .flow-arrow { display:none }
   .flow-lane { padding:7px 6px }
   .flow-lane header { gap:4px; flex-wrap:wrap }
@@ -155,5 +167,5 @@
   .flow-lane header svg { width:13px }
 }
 @media (prefers-reduced-motion:reduce) {
-  .shell,.sidebar,.simulation-layout,.configuration-grid,.event-enter-active,.view-enter-active,.comparison-track i,.refined-cpu .state,.tour-spotlight { transition:none!important }
+  .shell,.sidebar,.simulation-layout,.configuration-grid,.event-enter-active,.view-enter-active,.comparison-track i,.refined-cpu .state,.tour-spotlight,.configuration-chevron,.trace-toast-enter-active,.trace-toast-leave-active { transition:none!important }
 }

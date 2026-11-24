@@ -64,9 +64,9 @@ Cada evento tiene ID ascendente, módulo, instante lógico, código de explicaci
 ## Uso de CPU Scheduling
 
 - La barra lateral ofrece los modos expandido, compacto y oculto. El selector permanece en la barra superior y guarda la elección. En móvil, la navegación se abre como un panel lateral.
-- Simulación muestra el Gantt, el reloj lógico, la cola, la CPU, los procesos terminados y la tabla de estados. Los controles de reproducción permanecen visibles al desplazarse.
-- Configuración despliega el editor inferior. Aplicar y ejecutar genera una traza nueva. Los errores mantienen el editor abierto y conservan la última traza válida.
-- Resultados y análisis muestra los promedios de procesos terminados durante la reproducción y las métricas completas al llegar al último evento. El comparador ejecuta las cinco políticas en el motor sobre la carga aplicada.
+- Simulación muestra el Gantt, el reloj lógico, la cola, la CPU, los procesos terminados y la tabla de estados. Los controles de reproducción están al pie del Gantt.
+- El encabezado de Configuración despliega el editor bajo el título de CPU Scheduling. Aplicar y ejecutar genera una traza nueva. Los errores mantienen el editor abierto y conservan la última traza válida.
+- Resultados y análisis muestra los promedios de procesos terminados durante la reproducción y las métricas completas al llegar al último evento. El aviso inferior abre los resultados y no desplaza el contenido. El comparador ejecuta las cinco políticas en el motor sobre la carga aplicada.
 - El tutorial de CPU se inicia en la primera visita. El botón de ayuda permite reiniciarlo. El componente de recorrido admite pasos anclados a elementos de cualquier módulo.
 - El tiempo visual interpola la posición del indicador del Gantt entre eventos. Las colas, los estados y el registro se actualizan desde snapshots discretos. Pausar vuelve al instante lógico comprometido y el ajuste de movimiento reducido desactiva las transiciones.
 

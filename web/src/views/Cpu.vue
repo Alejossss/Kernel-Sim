@@ -2,7 +2,7 @@
 import { computed, nextTick, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
-import { Activity, CircleHelp, Clock3, Cpu, SlidersHorizontal } from 'lucide-vue-next'
+import { Activity, ChevronDown, CircleHelp, Clock3, Cpu, SlidersHorizontal } from 'lucide-vue-next'
 import Panel from '../components/Panel.vue'
 import Gantt from '../components/Gantt.vue'
 import PlaybackBar from '../components/PlaybackBar.vue'
@@ -27,6 +27,7 @@ const logCompact = ref(false)
 const tour = ref<InstanceType<typeof GuidedTour>>()
 const results = computed(() => route.query.view === 'results')
 const configuration = ref<HTMLElement>()
+const configurationToggle = ref<HTMLButtonElement>()
 const tablist = ref<HTMLElement>()
 const noProcesses: number[] = []
 const colors = ['#38bdf8','#a78bfa','#34d399','#fbbf24','#f472b6','#fb923c']
@@ -36,6 +37,7 @@ const completed = computed(() => snapshot.value?.processes.filter(p => p.status 
 const finished = computed(() => Boolean(trace.value && cursor.value === last.value))
 const animationDuration = computed(() => reduced.value ? 0 : playing.value ? Math.min(400,380/speed.value) : 180)
 const algorithm = computed(() => workload.value.policy === 4 ? t('Priority','Prioridad') : policies[workload.value.policy])
+const draftAlgorithm = computed(() => input.value.policy === 4 ? t('Priority','Prioridad') : policies[input.value.policy])
 const rows = computed(() => workload.value.jobs.map(job => ({
   job,
   state:snapshot.value?.processes.find(p => p.pid === job.pid),
@@ -83,16 +85,18 @@ async function onTabKey(event: KeyboardEvent) {
 }
 function closeEditor() {
   if (configuration.value?.contains(document.activeElement)) {
-    document.getElementById('configuration-toggle')?.focus({ preventScroll:true })
+    configurationToggle.value?.focus({ preventScroll:true })
   }
   editor.value = false
 }
-async function toggleEditor() {
-  if (editor.value && !results.value) return closeEditor()
-  await setView('simulation')
-  editor.value = true
+function toggleEditor() {
+  if (editor.value) closeEditor()
+  else editor.value = true
+}
+async function viewCompletedTrace() {
+  await setView('results')
   await nextTick()
-  configuration.value?.scrollIntoView({ block:'start' })
+  tablist.value?.querySelector<HTMLElement>('#results-tab')?.focus()
 }
 const steps: TourStep[] = [
   {
@@ -114,6 +118,7 @@ const steps: TourStep[] = [
   {
     target:'[data-tour="playback"]', title:() => t('Play, pause or step','Reproduce, pausa o avanza por pasos'),
     body:() => t('Play or step forward to inspect an event before continuing. The slider can jump to any event in the trace.','Reproduce o avanza un paso para inspeccionar un evento antes de continuar. El deslizador permite saltar a cualquier evento.'),
+    enter:async () => { if (results.value) await setView('simulation') },
     canAdvance:() => !trace.value || cursor.value > 0,
     action:{ label:() => playing.value ? t('Pause','Pausar') : t('Try playback','Probar reproducción'), run:toggle },
   },
@@ -145,23 +150,34 @@ async function startTour() {
 </script>
 
 <template>
-  <div class="page cpu-page refined-cpu">
+  <div class="page cpu-page refined-cpu" :class="{ 'showing-results':results }">
     <header class="cpu-titlebar" data-tour="title">
       <span class="module-icon"><Cpu :size="21" /></span>
       <div class="cpu-title"><h1>{{ t('CPU Scheduling','Planificación de CPU') }}</h1>
         <span class="policy-chip mono" :title="t(...descriptions[workload.policy])">{{ algorithm }}<template v-if="workload.policy===3"> · q={{ workload.quantum }}</template></span>
       </div>
       <div class="cpu-title-actions">
-        <button id="configuration-toggle" class="button" :aria-expanded="editor && !results" aria-controls="cpu-config" @click="toggleEditor"><SlidersHorizontal :size="16" />{{ t('Configuration','Configuración') }}<i v-if="dirty" class="draft-dot" /></button>
         <button class="icon-button" :aria-label="t('CPU help and tutorial','Ayuda y tutorial de CPU')" :title="t('CPU help and tutorial','Ayuda y tutorial de CPU')" @click="startTour"><CircleHelp :size="19" /></button>
       </div>
     </header>
+    <section v-show="!results" id="cpu-config" class="configuration-drawer" :class="{ 'configuration-open':editor }" ref="configuration">
+      <button ref="configurationToggle" id="configuration-toggle" type="button" class="configuration-summary" :aria-expanded="editor" aria-controls="configuration-fields" @click="toggleEditor">
+        <SlidersHorizontal :size="17" />
+        <strong>{{ t('Configuration','Configuración') }}</strong>
+        <span class="mono">{{ draftAlgorithm }}<template v-if="input.policy===3"> · q={{ input.quantum }}</template> · {{ input.jobs.length }} {{ t('processes','procesos') }}</span>
+        <span v-if="dirty" class="draft-label">{{ t('Unapplied changes','Cambios sin aplicar') }}</span>
+        <ChevronDown class="configuration-chevron" :size="17" aria-hidden="true" />
+      </button>
+      <div class="configuration-grid" id="configuration-fields" :inert="!editor">
+        <div class="configuration-inner"><WorkloadForm :color="color" @apply="applyWorkload" /></div>
+      </div>
+    </section>
     <div class="cpu-sticky">
       <div class="view-tabs" ref="tablist" role="tablist" :aria-label="t('CPU views','Vistas de CPU')" @keydown="onTabKey">
         <button id="simulation-tab" role="tab" :aria-selected="!results" :tabindex="results ? -1 : 0" aria-controls="simulation-view" @click="setView('simulation')">{{ t('Simulation','Simulación') }}</button>
         <button id="results-tab" data-tour="results" role="tab" :aria-selected="results" :tabindex="results ? 0 : -1" aria-controls="results-view" @click="setView('results')">{{ t('Results & Analysis','Resultados y análisis') }}</button>
       </div>
-      <div class="cpu-transport" data-tour="playback">
+      <div v-if="results" class="cpu-transport">
         <PlaybackBar v-model:speed="speed" :disabled="!trace" :last="last" :cursor="cursor" :playing="playing" @seek="seek" @toggle="toggle" />
         <span class="clock mono" :title="t('Logical time','Tiempo lógico')"><Clock3 :size="15" />t = {{ time }}<span class="muted"> / {{ trace?.duration ?? '—' }}</span></span>
       </div>
@@ -170,26 +186,20 @@ async function startTour() {
       <div v-show="!results" id="simulation-view" role="tabpanel" aria-labelledby="simulation-tab" class="simulation-layout" :class="{ 'log-compact':logCompact }">
         <div class="simulation-main">
           <div data-tour="gantt">
-            <Panel :title="t('Execution timeline','Línea de ejecución')">
-              <template #actions><span class="timeline-key"><i />{{ t('Elapsed','Transcurrido') }}<i />{{ t('Planned','Previsto') }}</span></template>
+            <Panel :title="t('Execution timeline','Línea de ejecución')" :caption="t('Gantt chart · logical time','Diagrama de Gantt · tiempo lógico')">
+              <template #actions><div class="timeline-heading-controls"><span class="timeline-key"><i />{{ t('Elapsed','Transcurrido') }}<i />{{ t('Planned','Previsto') }}</span><span class="clock mono"><Clock3 :size="15" />t = {{ time }}<span class="muted"> / {{ trace?.duration ?? '—' }}</span></span></div></template>
               <Gantt v-if="trace" :segments="trace.segments" :duration="trace.duration" :time="time" :visual-time="visualTime" :active="snapshot?.running ?? 0" :name="name" :color="color" @select="selectSegment" />
               <div v-else class="timeline-empty"><Activity :size="22" />{{ pending ? t('Generating trace…','Generando traza…') : t('Apply a workload to generate a trace.','Aplica una carga para generar una traza.') }}</div>
+              <div data-tour="playback">
+                <PlaybackBar v-model:speed="speed" :disabled="!trace" :last="last" :cursor="cursor" :playing="playing" @seek="seek" @toggle="toggle" />
+              </div>
             </Panel>
           </div>
           <CpuFlow :ready="snapshot?.ready ?? noProcesses" :running="snapshot?.running ?? 0" :completed="completed" :name="name" :color="color" :duration="animationDuration" />
-          <div v-if="finished" class="finish-banner"><strong>{{ t('Trace complete','Traza completada') }}</strong><button class="button primary" @click="setView('results')">{{ t('View results','Ver resultados') }}</button></div>
           <Panel :title="t('Process states','Estado de procesos')">
             <div class="table-wrap"><table><thead><tr><th>PID</th><th>{{ t('Process','Proceso') }}</th><th>{{ t('State','Estado') }}</th><th>{{ t('Remaining','Restante') }}</th></tr></thead>
               <tbody><tr v-for="{job,state} in rows" :key="job.pid"><td class="mono">P{{ job.pid }}</td><td>{{ job.name }}</td><td><span class="state" :data-state="state?.status">{{ status(state?.status) }}</span></td><td class="mono">{{ state?.remaining ?? '—' }}</td></tr></tbody></table></div>
           </Panel>
-          <section id="cpu-config" class="configuration-drawer" :class="{ 'configuration-open':editor }" ref="configuration">
-            <button class="configuration-summary" :aria-expanded="editor" aria-controls="configuration-fields" @click="toggleEditor">
-              <SlidersHorizontal :size="17" /><strong>{{ t('Configuration','Configuración') }}</strong><span class="mono">{{ algorithm }} · {{ workload.jobs.length }} {{ t('processes','procesos') }}</span><span v-if="dirty" class="draft-label">{{ t('Unapplied changes','Cambios sin aplicar') }}</span>
-            </button>
-            <div class="configuration-grid" id="configuration-fields" :inert="!editor">
-              <div class="configuration-inner"><WorkloadForm :color="color" @apply="applyWorkload" /></div>
-            </div>
-          </section>
         </div>
         <EventTimeline v-model:compact="logCompact" :events="trace?.events" :cursor="cursor" :jobs="workload.jobs" :name="name" :duration="animationDuration ? Math.min(animationDuration,200) : 0" @seek="seek" />
       </div>
@@ -199,6 +209,14 @@ async function startTour() {
         <CpuResults :trace="trace" :workload="applied" :finished="finished" :completed="completed" :compare="results && route.query.compare==='1'" :name="name" />
       </div>
     </Transition>
+    <Teleport to="body">
+      <Transition name="trace-toast">
+        <div v-if="finished && !results" class="finish-banner">
+          <strong role="status">{{ t('Trace complete','Traza completada') }}</strong>
+          <button class="button primary" @click="viewCompletedTrace">{{ t('View results','Ver resultados') }}</button>
+        </div>
+      </Transition>
+    </Teleport>
     <GuidedTour ref="tour" module="cpu" :steps="steps" />
   </div>
 </template>
