@@ -55,8 +55,8 @@
 .refined-cpu .state { transition:color 200ms ease }
 .finish-banner,.analysis-status { display:flex; align-items:center; gap:12px; min-width:0; background:color-mix(in srgb,var(--accent) 8%,var(--panel)); border:1px solid color-mix(in srgb,var(--accent) 32%,var(--line)); border-radius:7px; padding:9px 12px; font-size:.85rem }
 .finish-banner {
-  position:fixed; z-index:5; right:14px; bottom:max(14px,env(safe-area-inset-bottom));
-  width:max-content; max-width:calc(100% - 24px);
+  position:fixed; z-index:5; inset-inline:0; bottom:max(14px,env(safe-area-inset-bottom));
+  width:min(520px,calc(100% - 24px)); margin-inline:auto; justify-content:space-between;
   background:var(--surface); box-shadow:0 8px 24px #0004;
 }
 .finish-banner .button { flex:none }
@@ -144,7 +144,6 @@
   .event-heading { scroll-margin-top:calc(var(--sticky-height) + 10px) }
   .event-timeline.compact .event-heading { justify-content:flex-end }
   .event-scroll { height:310px }
-  .finish-banner { inset-inline:0; margin-inline:auto }
 }
 @media (max-width:460px) {
   .refined-cpu { padding-top:14px }
